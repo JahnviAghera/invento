@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "359099901355",
+    "project_id": "inventory-management-qdaa2t",
+    "storage_bucket": "inventory-management-qdaa2t.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:359099901355:android:2e3e7eb40cf535b3c25eee",
+        "android_client_info": {
+          "package_name": "com.jhaghera.invento"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "359099901355-994b98ltoc7h120dc77ded3iqqk80oh0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBMxNbAskTH8AFq-1VQR7bHKSoqse0CNAI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "359099901355-994b98ltoc7h120dc77ded3iqqk80oh0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "359099901355-2l8csn1mn5i37psmnlebpic3pldr6098.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.jhaghera.invento"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:359099901355:android:a30be29c564e9ea8c25eee",
+        "android_client_info": {
+          "package_name": "com.mycompany.inventorymanagement"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "359099901355-994b98ltoc7h120dc77ded3iqqk80oh0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBMxNbAskTH8AFq-1VQR7bHKSoqse0CNAI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "359099901355-994b98ltoc7h120dc77ded3iqqk80oh0.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "359099901355-2l8csn1mn5i37psmnlebpic3pldr6098.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.jhaghera.invento"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
