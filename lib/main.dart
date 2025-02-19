@@ -673,109 +673,136 @@ class InventoryService {
     await _db.collection('inventory').doc(id).delete();
   }
 }
-
 class _InventoryDashboardState extends State<InventoryDashboard> {
-  final InventoryService _inventoryService = InventoryService();
-  List<Map<String, dynamic>> _inventory = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadInventory();
-  }
-
-  Future<void> _loadInventory() async {
-    List<Map<String, dynamic>> data = await _inventoryService.fetchInventory();
-    setState(() {
-      _inventory = data;
-      _isLoading = false;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    User? user = FirebaseAuth.instance.currentUser;
+    print(user);
     return Scaffold(
       appBar: AppBar(
-        title: Text("Inventory Dashboard", style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.deepPurpleAccent,
+        title: Text('Invento'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.notifications_none),
+            onPressed: () {},
+          ),
+          CircleAvatar(
+          backgroundImage: user?.photoURL != null
+          ? NetworkImage(user!.photoURL!)
+              : AssetImage('assets/default_profile.png') as ImageProvider,
+          radius: 20,
+          ),
+          SizedBox(width: 10),
+        ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadInventory,
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ElevatedButton(onPressed: () async {
-                    await FirebaseAuth.instance.signOut();
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>LoginScreen()));
-                  },
-                  child: Text("Logout")),
-                  Text("Total Products", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("${_inventory.length}", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.blue)),
-                      Icon(Icons.inventory, color: Colors.blue, size: 30),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-                  Text("Recent Activity", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                ],
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'Search inventory...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
-            Expanded(
-              child: _isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : _inventory.isEmpty
-                  ? Center(child: Text("No items available", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)))
-                  : ListView.builder(
-                padding: EdgeInsets.all(12),
-                itemCount: _inventory.length,
-                itemBuilder: (context, index) {
-                  var item = _inventory[index];
-                  return Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 4,
-                    margin: EdgeInsets.symmetric(vertical: 8, horizontal: 5),
-                    child: ListTile(
-                      contentPadding: EdgeInsets.all(12),
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.deepPurpleAccent,
-                        child: Icon(FontAwesomeIcons.boxOpen, color: Colors.white),
-                      ),
-                      title: Text(item["name"], style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                      subtitle: Text("Stock: ${item["stock"]}", style: TextStyle(fontSize: 14, color: Colors.grey[700])),
-                      trailing: IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red),
-                        onPressed: () async {
-                          await _inventoryService.deleteInventory(item["id"]);
-                          _loadInventory();
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
+            SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildActionButton(Icons.qr_code_scanner, 'Scan'),
+                _buildActionButton(Icons.add, 'Add'),
+                _buildActionButton(Icons.import_export, 'Export'),
+                _buildActionButton(Icons.filter_list, 'Filter'),
+              ],
             ),
+            SizedBox(height: 20),
+            Text('Stock Overview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildStockCard('Total Items', '2,547', Icons.inventory, Colors.blue),
+                _buildStockCard('Low Stock', '23', Icons.warning, Colors.red),
+              ],
+            ),
+            SizedBox(height: 20),
+            Text('Low Stock Alerts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 10),
+            _buildLowStockItem('Wireless Mouse', 'WM-2023', '3 left'),
+            _buildLowStockItem('USB-C Cable', 'UC-2023', '5 left'),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => AddInventoryPage())).then((_) => _loadInventory());
-        },
-        child: Icon(Icons.add),
-        backgroundColor: Colors.blueAccent,
+      bottomNavigationBar: BottomNavigationBar(
+        items: [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Inventory'),
+          BottomNavigationBarItem(icon: Icon(Icons.warning), label: 'Alerts'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Reports'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+        ],
+      ),
+    );
+  }
+  void userinfo(){
+  }
+  Widget _buildActionButton(IconData icon, String label) {
+    return Column(
+      children: [
+        CircleAvatar(
+          backgroundColor: Colors.grey.shade200,
+          child: Icon(icon, color: Colors.black),
+        ),
+        SizedBox(height: 5),
+        Text(label),
+      ],
+    );
+  }
+
+  Widget _buildStockCard(String title, String count, IconData icon, Color color) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 5)],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color),
+              SizedBox(width: 8),
+              Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          SizedBox(height: 10),
+          Text(count, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLowStockItem(String name, String sku, String stock) {
+    return Card(
+      child: ListTile(
+        title: Text(name),
+        subtitle: Text('SKU: $sku'),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(stock, style: TextStyle(color: Colors.red)),
+            Text('Reorder', style: TextStyle(color: Colors.blue)),
+          ],
+        ),
       ),
     );
   }
 }
-
 class AddInventoryPage extends StatelessWidget {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController stockController = TextEditingController();
