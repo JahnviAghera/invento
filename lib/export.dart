@@ -19,14 +19,14 @@ class _ExportDataScreenState extends State<ExportDataScreen> {
       var excel = Excel.createExcel();
       Sheet sheetObject = excel['Inventory'];
 
-      // ✅ Add Headers
+      //  Add Headers
       sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).value = TextCellValue("Name");
       sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0)).value = TextCellValue("SKU");
       sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0)).value = TextCellValue("Quantity");
       sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0)).value = TextCellValue("Price");
       sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0)).value = TextCellValue("Cost");
 
-      // ✅ Add Data Rows
+      //  Add Data Rows
       int rowIndex = 1;
       for (var doc in snapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
@@ -43,7 +43,7 @@ class _ExportDataScreenState extends State<ExportDataScreen> {
         rowIndex++;
       }
 
-      // ✅ Fix: Use Internal Storage Instead of `getExternalStorageDirectory()`
+      //  Fix: Use Internal Storage Instead of `getExternalStorageDirectory()`
       Directory directory = await getApplicationDocumentsDirectory(); // 🔥 Works on all Android versions!
       String filePath = "${directory.path}/inventory.xlsx";
       File file = File(filePath);
@@ -54,7 +54,7 @@ class _ExportDataScreenState extends State<ExportDataScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("✅ Excel exported to: $filePath")),
+        SnackBar(content: Text(" Excel exported to: $filePath")),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

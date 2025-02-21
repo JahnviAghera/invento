@@ -1,15 +1,20 @@
 import 'dart:io';
-
+import 'dart:typed_data';
+import 'dart:ui';
+import 'package:flutter/rendering.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:invento/export.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +28,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
   runApp(const MyApp());
 }
 
@@ -46,7 +52,7 @@ class MyApp extends StatelessWidget {
           bodyMedium: TextStyle(fontSize: 14, color: Colors.black54),
         ),
       ),
-      home: const AuthWrapper(),
+      home: LoginScreen(),
     );
   }
 }
@@ -78,33 +84,57 @@ class AuthWrapper extends StatelessWidget {
 class UserSelectionScreen extends StatelessWidget {
   const UserSelectionScreen({super.key});
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Select an Option")),
+      // appBar: AppBar(title: Text("Select an Option")),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => CreateStoreScreen()),
-                );
-              },
-              child: Text('Create a New Store'),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => StaffAccessScreen()),
-                );
-              },
-              child: Text('Access an Existing Store'),
-            ),
+            Text("Get Started with Your Store",
+            style: TextStyle(
+              color:Colors.black,
+              fontSize: 24
+            ),),
+            Column(
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: Color(0xFF7871F8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(6.0)), // Removes border radius
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => CreateStoreScreen()),
+                    );
+                  },
+                  child: Text('Create a New Store',style: TextStyle(color: Colors.white),),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: Color(0xFF7871F8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(6.0)), // Removes border radius
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => StaffAccessScreen()),
+                    );
+                  },
+                  child: Text('Access an Existing Store',style: TextStyle(color: Colors.white),),
+                ),
+              ],
+            )
           ],
         ),
       ),
@@ -122,37 +152,37 @@ class _StaffAccessScreenState extends State<StaffAccessScreen> {
   @override
   void initState() {
     super.initState();
-    _loadStoredStore(); // ✅ Load store ID from SharedPreferences
+    // _loadStoredStore(); //  Load store ID from SharedPreferences
   }
 
-  // ✅ Load Store ID from SharedPreferences
-  Future<void> _loadStoredStore() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      storedStoreId = prefs.getString('storeId');
-    });
+  // //  Load Store ID from SharedPreferences
+  // Future<void> _loadStoredStore() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   setState(() {
+  //     storedStoreId = prefs.getString('storeId');
+  //   });
+  //
+  //   if (storedStoreId != null) {
+  //     //  Auto-login if Store ID exists
+  //     Navigator.pushReplacement(
+  //       context,
+  //       MaterialPageRoute(builder: (context) => InventoryDashboard(storeId: storedStoreId!)),
+  //     );
+  //   }
+  // }
 
-    if (storedStoreId != null) {
-      // ✅ Auto-login if Store ID exists
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => InventoryDashboard(storeId: storedStoreId!)),
-      );
-    }
-  }
-
-  // ✅ Save Store ID in SharedPreferences
+  //  Save Store ID in SharedPreferences
   Future<void> _saveStoreId(String storeId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('storeId', storeId);
   }
 
-  // ✅ Logout and clear Store ID
+  //  Logout and clear Store ID
   Future<void> _logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('storeId'); // Clear store ID
     await FirebaseAuth.instance.signOut(); // Sign out user
-
+    await prefs.clear(); // Deletes all stored preferences
     // Redirect to login screen (or StaffAccessScreen)
     Navigator.pushReplacement(
       context,
@@ -189,7 +219,7 @@ class _StaffAccessScreenState extends State<StaffAccessScreen> {
                       'role': 'staff',
                     });
 
-                    await _saveStoreId(storeId); // ✅ Save store ID
+                    await _saveStoreId(storeId); //  Save store ID
 
                     Navigator.pushReplacement(
                       context,
@@ -217,7 +247,7 @@ class _StaffAccessScreenState extends State<StaffAccessScreen> {
             SizedBox(height: 20),
             storedStoreId != null
                 ? ElevatedButton(
-              onPressed: _logout, // ✅ Logout button to clear store session
+              onPressed: _logout, //  Logout button to clear store session
               child: Text("Logout"),
             )
                 : SizedBox.shrink(),
@@ -233,17 +263,46 @@ class CreateStoreScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Create Store")),
+      appBar: AppBar(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Text("Setup Your Store",
+              style: TextStyle(
+                  color:Colors.black,
+                  fontSize: 24
+              ),),
+            const SizedBox(height: 100,),
             TextField(
               controller: _storeNameController,
-              decoration: InputDecoration(labelText: 'Store Name'),
+              decoration: InputDecoration(
+                  labelText: 'Store Name',
+                labelStyle: TextStyle(color: Colors.grey),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                      color: Colors.grey, width: 2), // Grey border
+                  borderRadius: BorderRadius.circular(
+                      8.0), // Optional: Rounded corners
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                      color: Color(0xFF7871F8),
+                      width: 2), // Border color when focused
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
             ),
             SizedBox(height: 20),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: Color(0xFF7871F8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(6.0)), // Removes border radius
+                ),
+              ),
               onPressed: () async {
                 String storeName = _storeNameController.text;
                 if (storeName.isNotEmpty) {
@@ -264,7 +323,7 @@ class CreateStoreScreen extends StatelessWidget {
                   }
                 }
               },
-              child: Text('Create Store'),
+              child: Text('Create Store',style:TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -272,34 +331,155 @@ class CreateStoreScreen extends StatelessWidget {
     );
   }
 }
-class StoreQRCodeScreen extends StatelessWidget {
+class StoreQRCodeScreen extends StatefulWidget {
   final String storeId;
 
   StoreQRCodeScreen({required this.storeId});
 
   @override
+  _StoreQRCodeScreenState createState() => _StoreQRCodeScreenState();
+}
+
+class _StoreQRCodeScreenState extends State<StoreQRCodeScreen> {
+  final GlobalKey _qrKey = GlobalKey();
+
+  Future<Uint8List?> _captureQRCode() async {
+    try {
+      RenderRepaintBoundary boundary = _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      var image = await boundary.toImage(pixelRatio: 3.0);
+
+      // Create a white background
+      final recorder = PictureRecorder();
+      final canvas = Canvas(recorder);
+      final paint = Paint()..color = Colors.white;
+
+      // Draw white background
+      canvas.drawRect(Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()), paint);
+
+      // Draw QR code image on top
+      canvas.drawImage(image, Offset.zero, Paint());
+
+      // Convert to bytes
+      final img = await recorder.endRecording().toImage(image.width, image.height);
+      ByteData? byteData = await img.toByteData(format: ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      print("❌ Error capturing QR Code: $e");
+      return null;
+    }
+  }
+
+
+  /// 📌 Save QR Code to Gallery
+  Future<void> saveQRCode() async {
+    Uint8List? pngBytes = await _captureQRCode();
+    if (pngBytes == null) return;
+
+    final result = await ImageGallerySaver.saveImage(pngBytes, name: "store_qr");
+    if (result['isSuccess']) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(" QR Code saved to gallery!")));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("❌ Failed to save QR Code!")));
+    }
+  }
+
+  /// 📌 Share QR Code
+  Future<void> shareQRCode() async {
+    Uint8List? pngBytes = await _captureQRCode();
+    if (pngBytes == null) return;
+
+    final directory = await getTemporaryDirectory();
+    String filePath = '${directory.path}/store_qr.png';
+    File file = File(filePath);
+    await file.writeAsBytes(pngBytes);
+
+    await Share.shareXFiles([XFile(file.path)], text: "📌 Store QR Code");
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Store QR Code")),
-      body: Center(
-        child: QrImageView(
-          data: storeId,
-          version: QrVersions.auto,
-          size: 200.0,
-          eyeStyle: const QrEyeStyle(
-            eyeShape: QrEyeShape.square,
-            color: Color(0xff128760), // Optional: Custom color
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          RepaintBoundary(
+            key: _qrKey,
+            child: Container(
+              color: Colors.white,
+              padding: EdgeInsets.all(10),
+              child: QrImageView(
+                data: widget.storeId,
+                version: QrVersions.auto,
+                size: 200.0,
+                eyeStyle: const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
+                  color: Color(0xff7871F8),
+                ),
+                dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.square,
+                  color: Colors.black,
+                ),
+              ),
+            )
           ),
-          dataModuleStyle: const QrDataModuleStyle(
-            dataModuleShape: QrDataModuleShape.square,
-            color: Color(0xff1a5441), // Optional: Custom color
+          // RepaintBoundary(
+          //   key: _qrKey,
+          //   child: Container(
+          //     color: Colors.white,  // Ensures a white background
+          //     padding: EdgeInsets.all(10),  // Adds spacing to prevent cropping
+          //     child: QrImageView(
+          //       data: widget.storeId,
+          //       version: QrVersions.auto,
+          //       eyeStyle: const QrEyeStyle(
+          //         eyeShape: QrEyeShape.square,
+          //         color: Color(0xff7871F8),
+          //       ),
+          //       dataModuleStyle: const QrDataModuleStyle(
+          //         dataModuleShape: QrDataModuleShape.square,
+          //         color: Colors.black,
+          //       ),
+          //       size: 200.0,
+          //       backgroundColor: Colors.white,  // Ensures QR code does not blend into the background
+          //     ),
+          //   ),
+          // ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  backgroundColor: Color(0xFF7871F8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(6.0)), // Removes border radius
+                  ),
+                ),
+                icon: Icon(Icons.save,color: Colors.white,),
+                label: Text("Save QR",style: TextStyle(color: Colors.white),),
+                onPressed: saveQRCode,
+              ),
+              const SizedBox(width: 20),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  backgroundColor: Color(0xFF7871F8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(6.0)), // Removes border radius
+                  ),
+                ),
+                icon: Icon(Icons.share,color:Colors.white),
+                label: Text("Share QR",style: TextStyle(color: Colors.white),),
+                onPressed: shareQRCode,
+              ),
+            ],
           ),
-        ),
+        ],
       ),
     );
   }
 }
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -939,9 +1119,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 }
 
 class InventoryDashboard extends StatefulWidget {
-  final String storeId; // ✅ Accept storeId parameter
+  final String storeId; //  Accept storeId parameter
 
-  InventoryDashboard({required this.storeId}); // ✅ Constructor
+  InventoryDashboard({required this.storeId}); //  Constructor
 
   @override
   _InventoryDashboardState createState() => _InventoryDashboardState();
@@ -966,7 +1146,7 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Color(0xFFF6F7F8),
-        // title: Text('Invento - Store: ${widget.storeId}'), // ✅ Show Store ID
+        // title: Text('Invento - Store: ${widget.storeId}'), //  Show Store ID
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none),
@@ -998,26 +1178,26 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
             _buildStockOverview(),
             const SizedBox(height: 20),
             StreamBuilder<QuerySnapshot>(
-              stream: _firestore.collection('inventory').snapshots(), // ✅ Fetch from 'inventory' collection directly
+              stream: _firestore.collection('inventory').snapshots(), //  Fetch from 'inventory' collection directly
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator()); // ✅ Show while loading
+                  return const Center(child: CircularProgressIndicator()); //  Show while loading
                 }
 
                 if (snapshot.hasError) {
-                  return Center(child: Text("Error loading inventory")); // ✅ Handle Firestore errors
+                  return Center(child: Text("Error loading inventory")); //  Handle Firestore errors
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(child: Text("No inventory data available")); // ✅ Handle empty case
+                  return Center(child: Text("No inventory data available")); //  Handle empty case
                 }
 
                 final inventoryDocs = snapshot.data!.docs;
 
                 final totalItems = inventoryDocs.length;
                 final lowStockCount = inventoryDocs.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>?; // ✅ Ensure it's a map
-                  final stock = data?['stock'] ?? 0; // ✅ Default to 0 if missing
+                  final data = doc.data() as Map<String, dynamic>?; //  Ensure it's a map
+                  final stock = data?['stock'] ?? 0; //  Default to 0 if missing
                   return stock < _lowStockThreshold;
                 }).length;
 
@@ -1064,7 +1244,7 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
           return const Center(child: Text("Store Not Found"));
         }
 
-        final storeName = snapshot.data!.get('name') ?? "Unnamed Store"; // ✅ Fetch Store Name
+        final storeName = snapshot.data!.get('name') ?? "Unnamed Store"; //  Fetch Store Name
         return Text(
           "Welcome $storeName",
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -1209,7 +1389,7 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
       ),
       child: Stack(
         children: [
-          // ✅ Background Circles
+          //  Background Circles
           Positioned(
             left: 258,
             top: -22,
@@ -1239,11 +1419,11 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
               ),
             ),
           ),
-          // ✅ Fetch Inventory Data & Display
+          //  Fetch Inventory Data & Display
           Positioned.fill(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
-                  .collection('inventory') // ✅ Adjusted Firestore path
+                  .collection('inventory') //  Adjusted Firestore path
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -1254,7 +1434,7 @@ class _InventoryDashboardState extends State<InventoryDashboard> {
                   return Center(child: Text("No inventory data available"));
                 }
 
-                // ✅ Process Inventory Data
+                //  Process Inventory Data
                 final inventoryDocs = snapshot.data!.docs;
                 int totalItems = inventoryDocs.length;
                 int totalQty = 0;
@@ -1655,44 +1835,46 @@ class _AddProductPageState extends State<AddProductPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Add Product")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ElevatedButton.icon(
-              icon: Icon(Icons.qr_code_scanner),
-              label: Text("Scan Barcode"),
-              onPressed: _scanBarcode,
-            ),
-            SizedBox(height: 10),
-            Text("Scanned Barcode: $_scannedBarcode", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            SizedBox(height: 20),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: "Product Name", border: OutlineInputBorder()),
-            ),
-            SizedBox(height: 15),
-            TextField(
-              controller: _stockController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: "Stock Quantity", border: OutlineInputBorder()),
-            ),
-            SizedBox(height: 15),
-            TextField(
-              controller: _costController, // NEW Cost Field
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: "Cost Price", border: OutlineInputBorder()),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 50)),
-              onPressed: _saveProduct,
-              child: Text("Save Product"),
-            ),
-          ],
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ElevatedButton.icon(
+                icon: Icon(Icons.qr_code_scanner),
+                label: Text("Scan Barcode"),
+                onPressed: _scanBarcode,
+              ),
+              SizedBox(height: 10),
+              Text("Scanned Barcode: $_scannedBarcode", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              SizedBox(height: 20),
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: "Product Name", border: OutlineInputBorder()),
+              ),
+              SizedBox(height: 15),
+              TextField(
+                controller: _stockController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: "Stock Quantity", border: OutlineInputBorder()),
+              ),
+              SizedBox(height: 15),
+              TextField(
+                controller: _costController, // NEW Cost Field
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: "Cost Price", border: OutlineInputBorder()),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 50)),
+                onPressed: _saveProduct,
+                child: Text("Save Product"),
+              ),
+            ],
+          ),
         ),
-      ),
+      )
     );
   }
 }
@@ -1968,34 +2150,6 @@ class AllProductsScreen extends StatelessWidget {
   }
 }
 
-
-class BillScreen extends StatefulWidget {
-  final String storeId;
-
-  BillScreen({required this.storeId});
-
-  @override
-  _BillScreenState createState() => _BillScreenState();
-}
-
-class BillItem {
-  final String name;
-  final String sku;
-  int quantity;
-  double price;
-  double discount;
-
-  BillItem({
-    required this.name,
-    required this.sku,
-    required this.quantity,
-    required this.price,
-    this.discount = 0.0,
-  });
-
-  double get totalPrice => (price * quantity) - discount;
-}
-
 // class _BillScreenState extends State<BillScreen> {
 //   List<BillItem> selectedProducts = [];
 //   String storeName = "Loading...";
@@ -2103,7 +2257,7 @@ class BillItem {
 //     File file = File(filePath);
 //     await file.writeAsBytes(await pdf.save());
 //
-//     print("✅ Bill PDF saved at: $filePath");
+//     print(" Bill PDF saved at: $filePath");
 //     shareBill(filePath);
 //   }
 //
@@ -2167,7 +2321,7 @@ class BillItem {
 //     List<DocumentSnapshot> allProducts = [];
 //     List<DocumentSnapshot> filteredProducts = [];
 //
-//     // ✅ Fetch products from Firestore `inventory`
+//     //  Fetch products from Firestore `inventory`
 //     QuerySnapshot productSnapshot = await FirebaseFirestore.instance
 //         .collection('inventory') // 🔹 Direct access to inventory collection
 //         .get();
@@ -2227,8 +2381,8 @@ class BillItem {
 //
 //                           return GestureDetector(
 //                             onTap: () {
-//                               var cost = data['cost'] ?? 0.0; // ✅ Set default if null
-//                               var stock = data['stock'] ?? 0; // ✅ Set default if null
+//                               var cost = data['cost'] ?? 0.0; //  Set default if null
+//                               var stock = data['stock'] ?? 0; //  Set default if null
 //
 //                               addToBill({
 //                                 'name': data['name'] ?? "Unnamed Product",
@@ -2268,330 +2422,195 @@ class BillItem {
 //
 //
 // }
+class BillScreen extends StatefulWidget {
+  final String storeId;
+
+  BillScreen({required this.storeId});
+
+  @override
+  _BillScreenState createState() => _BillScreenState();
+}
+
+class BillItem {
+  final String name;
+  final String sku;
+  int quantity;
+  double price;
+  double discount;
+
+  BillItem({
+    required this.name,
+    required this.sku,
+    required this.quantity,
+    required this.price,
+    this.discount = 0.0,
+  });
+
+  double get totalPrice => (price * quantity) - discount;
+}
+
+
 class _BillScreenState extends State<BillScreen> {
-  List<BillItem> selectedProducts = [
-    BillItem(name: "Apple", sku: "12345", quantity: 2, price: 50.0, discount: 5.0),
-    BillItem(name: "Banana", sku: "67890", quantity: 3, price: 20.0, discount: 2.0),
-    BillItem(name: "Milk", sku: "11223", quantity: 1, price: 30.0, discount: 0.0),
-    BillItem(name: "Bread", sku: "33445", quantity: 2, price: 25.0, discount: 1.0),
-    BillItem(name: "Eggs", sku: "55667", quantity: 1, price: 60.0, discount: 5.0),
-    BillItem(name: "Rice", sku: "77889", quantity: 5, price: 80.0, discount: 10.0),
-    BillItem(name: "Sugar", sku: "99001", quantity: 2, price: 40.0, discount: 3.0),
-  ];
-  String storeName = "Loading...";
+  List<Map<String, dynamic>> selectedProducts = [];
+  SharedPreferences? prefs;
 
   @override
   void initState() {
     super.initState();
-    fetchStoreName();
+    _loadPreferences();
+    fetchAllProducts();
   }
 
-  /// 📌 Fetch and Add All Products to Bill
-  Future<void> fetchAllProducts() async {
-    QuerySnapshot productSnapshot = await FirebaseFirestore.instance
-        .collection('stores')
-        .doc(widget.storeId)
-        .collection('inventory')
-        .get();
+  void _loadPreferences() async {
+    prefs = await SharedPreferences.getInstance();
+  }
 
-    List<BillItem> allProducts = productSnapshot.docs.map((doc) {
-      var data = doc.data() as Map<String, dynamic>;
-      return BillItem(
-        name: data['name'] ?? "Unnamed Product",
-        sku: data['sku'] ?? "Unknown SKU",
-        quantity: 1, // 🔹 Start with 1 quantity
-        price: (data['price'] as num?)?.toDouble() ?? 0.0,
-        discount: (data['discount'] as num?)?.toDouble() ?? 0.0,
-      );
+  Future<void> fetchAllProducts() async {
+    try {
+      String userId = FirebaseAuth.instance.currentUser!.uid; // Get current user ID
+
+      // Query Firestore to find the store where the owner matches the current user ID
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection("inventory")
+          .doc("stores")
+          .collection("stores") // Adjust if needed
+          .where("owner", isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first["name"]; // Return store name
+      } else {
+      }
+    } catch (e) {
+      print("Error fetching store name: $e");
+    }
+    QuerySnapshot querySnapshot =
+    await FirebaseFirestore.instance.collection('inventory').get();
+
+    List<Map<String, dynamic>> allProducts = querySnapshot.docs.map((doc) {
+      return {'sku': doc.id, ...doc.data() as Map<String, dynamic>};
     }).toList();
 
     setState(() {
-      selectedProducts = allProducts; // 🔹 Auto-add all products to bill
+      selectedProducts.addAll(
+        allProducts.where((newItem) =>
+        !selectedProducts.any((existingItem) => existingItem['sku'] == newItem['sku'])),
+      );
     });
   }
 
-
-  Future<void> fetchStoreName() async {
-    DocumentSnapshot storeDoc = await FirebaseFirestore.instance
-        .collection('stores')
-        .doc(widget.storeId)
-        .get();
-
-    setState(() {
-      storeName = storeDoc.exists ? storeDoc['name'] : "Unnamed Store";
-    });
-  }
-
-  /// 📌 Scan Barcode and Add Product
   Future<void> scanBarcode() async {
-    String barcode = await FlutterBarcodeScanner.scanBarcode(
-        "#ff6666", "Cancel", true, ScanMode.BARCODE);
+    try {
+      var result = await BarcodeScanner.scan();
+      String barcode = result.rawContent;
+      if (barcode.isNotEmpty) {
+        addProductBySKU(barcode);
+      }
+    } catch (e) {
+      print("Barcode scan error: $e");
+    }
+  }
 
-    if (barcode == "-1") return; // If user cancels scanning
+  Future<void> addProductBySKU(String sku) async {
+    DocumentSnapshot doc =
+    await FirebaseFirestore.instance.collection('inventory').doc(sku).get();
 
-    print("📌 Scanned Barcode: $barcode");
-
-    var querySnapshot = await FirebaseFirestore.instance
-        .collection('stores')
-        .doc(widget.storeId)
-        .collection('inventory')
-        .where('sku', isEqualTo: barcode)
-        .get();
-
-    if (querySnapshot.docs.isNotEmpty) {
-      var data = querySnapshot.docs.first.data();
-      addToBill(data);
-    } else {
+    if (!doc.exists) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("⚠️ Product not found in inventory!")),
       );
+      return;
     }
+
+    Map<String, dynamic> productData = {'sku': sku, ...doc.data() as Map<String, dynamic>};
+    setState(() {
+      selectedProducts.add(productData);
+    });
   }
-
-  /// 📌 Add Product to Bill (Auto Increment Quantity)
-  void addToBill(Map<String, dynamic> data) {
-    int index = selectedProducts.indexWhere((item) => item.sku == data['sku']);
-
-    if (index != -1) {
-      // Product already exists, increment quantity
-      setState(() {
-        selectedProducts[index].quantity++;
-      });
-    } else {
-      // Add new product
-      setState(() {
-        selectedProducts.add(BillItem(
-          name: data['name'],
-          sku: data['sku'],
-          quantity: 1,
-          price: (data['price'] as num).toDouble(),
-          discount: data.containsKey('discount') ? (data['discount'] as num).toDouble() : 0.0,
-        ));
-      });
-    }
-  }
-
-  /// 📌 Generate PDF Bill
   Future<void> generateBillPDF() async {
     final pdf = pw.Document();
+    final now = DateTime.now();
+    String storeName="";
 
+    final fileName = "Invoice_${now.millisecondsSinceEpoch}.pdf";
+    try {
+      String userId = FirebaseAuth.instance.currentUser!.uid; // Get current user ID
+
+      // Query Firestore to find the store where the owner matches the current user ID
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection("inventory")
+          .doc("stores")
+          .collection("stores") // Adjust if needed
+          .where("owner", isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        storeName= querySnapshot.docs.first["name"]; // Return store name
+      } else {
+      }
+    } catch (e) {
+      print("Error fetching store name: $e");
+    }
     pdf.addPage(
       pw.Page(
-        build: (pw.Context context) => pw.Column(
-          children: [
-            pw.Text(storeName, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-            pw.Text("Invoice", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-            pw.Divider(),
-            pw.Table.fromTextArray(
-              headers: ["Product", "SKU", "Qty", "Price", "Discount", "Total"],
-              data: selectedProducts.map((item) => [
-                item.name,
-                item.sku,
-                item.quantity.toString(),
-                "\$${item.price}",
-                "\$${item.discount}",
-                "\$${item.totalPrice}"
-              ]).toList(),
-            ),
-            pw.Divider(),
-            pw.Text(
-              "Total: \$${selectedProducts.fold(0.0, (double sum, item) => sum + item.totalPrice).toStringAsFixed(2)}",
-              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
-            ),
-          ],
-        ),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(storeName, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 20),
+              pw.Table.fromTextArray(
+                context: context,
+                headers: ['Product', 'SKU', 'Price'],
+                data: selectedProducts.map((item) => [item['name'], item['sku'], "₹${item['price']}"]).toList(),
+              ),
+            ],
+          );
+        },
       ),
     );
 
-    Directory directory = await getApplicationDocumentsDirectory(); // 🔥 Works on all Android versions!
-    String filePath = "${directory.path}/invoice.pdf";
-    File file = File(filePath);
+    final output = await getTemporaryDirectory();
+    final file = File("${output.path}/$fileName");
     await file.writeAsBytes(await pdf.save());
 
-    print("✅ Bill PDF saved at: $filePath");
-    shareBill(filePath);
-  }
-
-  /// 📌 Share Bill via SMS or WhatsApp
-  Future<void> shareBill(String filePath) async {
-    if (filePath.isNotEmpty && await File(filePath).exists()) {
-      await Share.shareXFiles([XFile(filePath)], text: "📂 Here is the exported file.");
+    // Share.shareFiles([file.path], text: "Here is your invoice from $storeName.");
+    if (file.path != null) {
+      Share.shareXFiles([XFile(file.path!)], text: "Here is your invoice from $storeName.");
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("⚠ No file found. Please generate the bill first.")),
+        SnackBar(content: Text("⚠ No file to share. Please export first.")),
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Create Bill - $storeName")),
+      appBar: AppBar(title: Text("Billing System")),
       body: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton.icon(
-                icon: Icon(Icons.qr_code_scanner),
-                label: Text("Scan Product"),
-                onPressed: scanBarcode,
-              ),
-              ElevatedButton.icon(
-                icon: Icon(Icons.list),
-                label: Text("Manual Add"),
-                onPressed: _showProductSelection, // Implement manual add if needed
-              ),
-            ],
-          ),
+          ElevatedButton(onPressed: scanBarcode, child: Text("Scan Barcode")),
           Expanded(
             child: ListView.builder(
               itemCount: selectedProducts.length,
               itemBuilder: (context, index) {
-                var item = selectedProducts[index];
-
+                final product = selectedProducts[index];
                 return ListTile(
-                  title: Text(item.name),
-                  subtitle: Text("Qty: ${item.quantity} | Price: \$${item.price}"),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () {
-                      setState(() {
-                        selectedProducts.removeAt(index);
-                      });
-                    },
-                  ),
+                  title: Text(product['name'] ?? 'Unknown'),
+                  subtitle: Text("SKU: ${product['sku']} - ₹${product['price']}"),
                 );
               },
             ),
           ),
-          ElevatedButton(
-            onPressed:(){
-              generateBillPDF();
-            },
-            child: Text("Generate & Share Bill"),
-          ),
+          ElevatedButton(onPressed: generateBillPDF, child: Text("Generate PDF")),
         ],
       ),
     );
   }
-  Future<void> _showProductSelection() async {
-    TextEditingController searchController = TextEditingController();
-    List<DocumentSnapshot> allProducts = [];
-    List<DocumentSnapshot> filteredProducts = [];
-
-    QuerySnapshot productSnapshot = await FirebaseFirestore.instance
-        .collection('stores')
-        .doc(widget.storeId)
-        .collection('inventory')
-        .get();
-
-
-    allProducts = productSnapshot.docs;
-    filteredProducts = List.from(allProducts);
-
-    if (allProducts.isEmpty) {
-      print("❌ No products found in inventory.");
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.7,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    // 📌 Search Bar
-                    TextField(
-                      controller: searchController,
-                      decoration: InputDecoration(
-                        labelText: "Search Product",
-                        prefixIcon: Icon(Icons.search),
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (query) {
-                        setState(() {
-                          filteredProducts = query.isEmpty
-                              ? List.from(allProducts)
-                              : allProducts.where((doc) {
-                            var data = doc.data() as Map<String, dynamic>;
-                            return data['name']
-                                .toLowerCase()
-                                .contains(query.toLowerCase());
-                          }).toList();
-                        });
-                      },
-                    ),
-                    SizedBox(height: 10),
-
-                    // 📌 "Add All Products" Button
-                    ElevatedButton.icon(
-                      icon: Icon(Icons.playlist_add),
-                      label: Text("Add All Products"),
-                      onPressed: () {
-                        for (var doc in filteredProducts) {
-                          var data = doc.data() as Map<String, dynamic>;
-                          addToBill(data);
-                        }
-                        Navigator.pop(context);
-                      },
-                    ),
-
-                    SizedBox(height: 10),
-
-                    // 📌 Product List
-                    Expanded(
-                      child: filteredProducts.isEmpty
-                          ? Center(child: Text("No products found"))
-                          : ListView.builder(
-                        itemCount: filteredProducts.length,
-                        itemBuilder: (context, index) {
-                          var doc = filteredProducts[index];
-                          var data = doc.data() as Map<String, dynamic>;
-
-                          return GestureDetector(
-                            onTap: () {
-                              addToBill(data);
-                              Navigator.pop(context);
-                            },
-                            child: Card(
-                              elevation: 3,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: ListTile(
-                                title: Text(data['name'] ?? "Unnamed Product"),
-                                subtitle: Text(
-                                  "₹${data['price'] ?? 0} | SKU: ${data['sku'] ?? 'N/A'}",
-                                ),
-                                trailing: Icon(Icons.add_shopping_cart),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
 }
-
 
 class InsightsPage extends StatelessWidget {
   Future<Map<String, dynamic>> getInsights() async {
