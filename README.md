@@ -72,7 +72,6 @@ Invento is an inventory management system designed to help businesses efficientl
 - **Firebase Authentication** - Secure user login.
 - **Firebase Firestore** - Real-time inventory tracking.
 - **Firebase Storage** - Storing images, QR codes, and invoices.
-- **Firebase Functions (Optional)** - Server-side automation.
 
 ### Additional Libraries & Services
 - **QR Code & Barcode Scanner** - Enables seamless inventory tracking.
